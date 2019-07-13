@@ -28,11 +28,15 @@ diorama.registerScenario("description of example test", async (s, t, { alice, bo
 
   const title = "mein kampf1";
 
-  const addr = await alice.call("books", "create_book", {"entry" : {"title":title, "owner":alice.agentAddress }})
+  const addr = await alice.call("books", "create_book", {"title":title})
   const result = await alice.call("books", "get_book", {"address": addr.Ok})
+  const my_books = await alice.call("books","list_my_books" , { })
+   
+  const book = JSON.parse(my_books.Ok[0].App[1])
 
   // check for equality of the actual and expected results
   t.deepEqual(result, { Ok: { App: [ 'book', '{"title":"'+title+'","owner":"'+alice.agentAddress+'"}' ] } })
+  t.equal(book.title,title)
 })
 
 diorama.run()

@@ -11,11 +11,13 @@ extern crate holochain_json_derive;
 use hdk::{
     entry_definition::ValidatingEntryType,
     error::ZomeApiResult,
+    AGENT_ADDRESS
 };
 
 use hdk::holochain_core_types::{
     entry::Entry,
     dna::entry_types::Sharing,
+    link::LinkMatch
 };
 
 use hdk::holochain_persistence_api::{
@@ -28,17 +30,29 @@ use hdk::holochain_json_api::{
 };
 
 pub static BOOK_ENTRY: &str = "book";
+pub static HAS_BOOK_LINK_TYPE : &str = "has_book";
 
 // functions -------------------------------------------------------------
-pub fn handle_create_book(book: Book) -> ZomeApiResult<Address> {
+pub fn handle_create_book(title: String) -> ZomeApiResult<Address> {
+    let book = Book{ title, owner: AGENT_ADDRESS.to_owned() };
     let entry = Entry::App(BOOK_ENTRY.into(), book.into());
     let address = hdk::commit_entry(&entry)?;
+    
+    hdk::link_entries(&AGENT_ADDRESS, &address, HAS_BOOK_LINK_TYPE, "")?;
+
     Ok(address)
 }
 
 pub fn handle_get_book(address: Address) -> ZomeApiResult<Option<Entry>> {
     hdk::get_entry(&address)
 }
+
+pub fn handle_list_my_books() -> ZomeApiResult<Vec<Entry>> {
+    hdk::get_links_and_load(&AGENT_ADDRESS, LinkMatch::Exactly(HAS_BOOK_LINK_TYPE), LinkMatch::Any)?
+        .into_iter()
+        .collect()
+}
+
 
 // entry defintions  -------------------------------------------------------------
 
@@ -67,6 +81,8 @@ fn book_definition() -> ValidatingEntryType {
                         .any(|p| p.source() == entry.owner);
 
                     let is_nazi = entry.title == "mein kampf";
+                    
+                    hdk::debug(format!("************************ nazi:{} debug:{}", is_nazi, is_owner))?;
 
                     if !is_owner || is_nazi {
                          Err("unauthorized".to_string())
@@ -80,7 +96,7 @@ fn book_definition() -> ValidatingEntryType {
         links: [
             from!(
                 "%agent_id",
-                link_type: "has_book",
+                link_type: HAS_BOOK_LINK_TYPE,
 
                 validation_package: || {
                     hdk::ValidationPackageDefinition::Entry
@@ -104,8 +120,13 @@ define_zome! {
     genesis: || { Ok(()) }
 
     functions: [
+        list_my_books: {
+            inputs: | |,
+            outputs: |result: ZomeApiResult<Vec<Entry>> |,
+            handler: handle_list_my_books
+        }
         create_book: {
-            inputs: |entry: Book|,
+            inputs: |title: String|,
             outputs: |result: ZomeApiResult<Address>|,
             handler: handle_create_book
         }
@@ -117,6 +138,6 @@ define_zome! {
     ]
 
     traits: {
-        hc_public [create_book , get_book ]
+        hc_public [create_book , get_book, list_my_books ]
     }
 }

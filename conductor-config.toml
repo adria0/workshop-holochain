@@ -1,0 +1,33 @@
+[[agents]]
+id = "test_agent"
+name = "HoloTester2"
+public_address = "HcSCiBJIo7QhyizqvacTqSy3VhwfyzxhmWhdjoTO6Y5zmw8xUQDkX66i3TF5i7i"
+keystore_file = "/home/amb/.config/holochain/keys/HcSCiBJIo7QhyizqvacTqSy3VhwfyzxhmWhdjoTO6Y5zmw8xUQDkX66i3TF5i7i"
+
+[[dnas]]
+id = "mylibrary"
+file = "/home/amb/w/adria/holo/mylibrary/dist/mylibrary.dna.json"
+
+[[instances]]
+id = "test-instance"
+agent = "test_agent"
+dna = "mylibrary"
+
+    [instances.storage]
+    type = "file"
+    path = "/tmp/holo/1"
+
+
+[[interfaces]]
+id = "websocket interface"
+
+    [[interfaces.instances]]
+    id = "test-instance"
+
+    [interfaces.driver]
+    type = "websocket"
+    port = 8888
+
+[network]
+n3h_persistence_path = "/tmp/holo/2"
+bootstrap_nodes = []
